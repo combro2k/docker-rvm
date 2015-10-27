@@ -167,7 +167,7 @@ then
     exit 1
 fi
 
-if [[ "${@}" == "build" ]]; then
+build() {
     tasks=(
         'pre_install'
         'create_users'
@@ -175,11 +175,18 @@ if [[ "${@}" == "build" ]]; then
         'install_rvm'
         'post_install'
     )
-else
-    tasks=${@}
-fi
 
-for task in ${tasks[@]}
+    for task in ${tasks[@]}
+    do
+	echo "Running task ${task}..."
+	if ! ${task} >> ${INSTALL_LOG} 2>&1; then
+	    tail ${INSTALL_LOG}
+	    exit 1
+	fi
+    done
+}
+
+for task in ${@}
 do
     if ! declare -F ${task} > /dev/null; then
         echo "${task} does not exist fail..."
@@ -187,20 +194,8 @@ do
     fi
 
     echo "Running ${task}..."
-
-    if ! tty -s; then
-        if [ ! -f "${INSTALL_LOG}" ]; then
-            touch ${INSTALL_LOG}
-        fi
-
-        if ! ${task} > ${INSTALL_LOG} 2>&1; then
-            tail ${INSTALL_LOG}
-            exit 1
-        fi
-    else
-        if ! ${task} 2>&1; then
-            exit 1
-        fi
+    if ! ${task} 2>&1; then
+    	exit 1
     fi
 done
 
